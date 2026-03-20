@@ -49,17 +49,6 @@ El proyecto sigue una arquitectura en capas:
 ## Diagrama de Clases
 
 
-
----
-
-## Tecnologías usadas
-
-- Java 17
-- Spring Boot 4
-- Lombok
-- Swagger
-- JaCoCo
-
 ---
 ## Cómo correr el proyecto
 
