@@ -1,43 +1,53 @@
 package edu.eci.dosw.tdd.controller;
 
-import edu.eci.dosw.tdd.controller.dto.LoanDTO;
-import edu.eci.dosw.tdd.controller.mapper.LoanMapper;
-import edu.eci.dosw.tdd.core.service.LoanService;
-import lombok.extern.slf4j.Slf4j;
+import edu.eci.dosw.tdd.controller.dto.LoanRequestDTO;
+import edu.eci.dosw.tdd.core.model.Loan;
+import edu.eci.dosw.tdd.core.service.LibraryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
+@Tag(name = "Loans", description = "Loan management endpoints")
 @RestController
 @RequestMapping("/api/loans")
+@RequiredArgsConstructor
 public class LoanController {
 
-    private final LoanService loanService;
-    private final LoanMapper loanMapper;
+    private final LibraryService libraryService;
 
-    public LoanController(LoanService loanService, LoanMapper loanMapper) {
-        this.loanService = loanService;
-        this.loanMapper = loanMapper;
-    }
-
+    @Operation(summary = "Create a new loan")
     @PostMapping
-    public ResponseEntity<LoanDTO> createLoan(@RequestBody LoanDTO loanDTO) {
-        log.info("POST /api/loans - createLoan: {}", loanDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(loanService.createLoan(loanDTO));
+    public ResponseEntity<Loan> loanBook(@RequestBody LoanRequestDTO body) {
+        Loan loan = libraryService.loanBook(body.getBookId(), body.getUserId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(loan);
     }
 
+    @Operation(summary = "Get all loans")
     @GetMapping
-    public ResponseEntity<List<LoanDTO>> getAllLoans() {
-        log.info("GET /api/loans - getAllLoans");
-        return ResponseEntity.ok(loanService.getAllLoans());
+    public ResponseEntity<List<Loan>> getAllLoans() {
+        return ResponseEntity.ok(libraryService.getAllLoans());
     }
 
+    @Operation(summary = "Get a loan by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<LoanDTO> getLoanById(@PathVariable String id) {
-        log.info("GET /api/loans/{} - getLoanById", id);
-        return ResponseEntity.ok(loanService.getLoanById(id));
+    public ResponseEntity<Loan> getLoanById(@PathVariable String id) {
+        return ResponseEntity.ok(libraryService.getLoanById(id));
+    }
+
+    @Operation(summary = "Return a book (close a loan)")
+    @PutMapping("/{id}/return")
+    public ResponseEntity<Loan> returnBook(@PathVariable String id) {
+        return ResponseEntity.ok(libraryService.returnBook(id));
+    }
+
+    @Operation(summary = "Get all loans for a specific user")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Loan>> getLoansByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(libraryService.getLoansByUser(userId));
     }
 }

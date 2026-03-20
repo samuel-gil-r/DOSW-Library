@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO registerUser(UserDTO userDTO) {
         String id = UUID.randomUUID().toString();
-        User user = new User(id, userDTO.getName(), 0);
+        User user = new User(id, userDTO.getName());
         users.put(id, user);
         return toDTO(user);
     }

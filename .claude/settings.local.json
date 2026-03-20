@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(java|xml|properties|yml\\)$\")",
+      "Bash(./mvnw test:*)",
+      "Bash(find target/site/jacoco -name *.html -o -name *.xml)",
+      "Bash(python3 -c \":*)",
+      "Bash(./mvnw dependency:resolve -q)",
+      "Bash(./mvnw dependency:tree -Dscope=test)",
+      "Bash(jar -tf ~/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/4.0.3/spring-boot-test-autoconfigure-4.0.3.jar)",
+      "Bash(jar -tf ~/.m2/repository/org/springframework/spring-test/7.0.5/spring-test-7.0.5.jar)",
+      "Bash(powershell -Command \":*)"
+    ]
+  }
+}
