@@ -1,43 +1,41 @@
 package edu.eci.dosw.tdd.controller;
 
-import edu.eci.dosw.tdd.controller.dto.UserDTO;
-import edu.eci.dosw.tdd.controller.mapper.UserMapper;
-import edu.eci.dosw.tdd.core.service.UserService;
-import lombok.extern.slf4j.Slf4j;
+import edu.eci.dosw.tdd.controller.dto.UserRequestDTO;
+import edu.eci.dosw.tdd.core.model.User;
+import edu.eci.dosw.tdd.core.service.LibraryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
+@Tag(name = "Users", description = "User management endpoints")
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
-    private final UserMapper userMapper;
+    private final LibraryService libraryService;
 
-    public UserController(UserService userService, UserMapper userMapper) {
-        this.userService = userService;
-        this.userMapper = userMapper;
-    }
-
+    @Operation(summary = "Register a new user")
     @PostMapping
-    public ResponseEntity<UserDTO> registerUser(@RequestBody UserDTO userDTO) {
-        log.info("POST /api/users - registerUser: {}", userDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerUser(userDTO));
+    public ResponseEntity<User> registerUser(@RequestBody UserRequestDTO body) {
+        User user = libraryService.registerUser(body.getId(), body.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
+    @Operation(summary = "Get all users")
     @GetMapping
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        log.info("GET /api/users - getAllUsers");
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(libraryService.getAllUsers());
     }
 
+    @Operation(summary = "Get a user by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable String id) {
-        log.info("GET /api/users/{} - getUserById", id);
-        return ResponseEntity.ok(userService.getUserById(id));
+    public ResponseEntity<User> getUser(@PathVariable String id) {
+        return ResponseEntity.ok(libraryService.getUser(id));
     }
 }
