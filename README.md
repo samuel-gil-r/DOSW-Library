@@ -92,6 +92,8 @@ El reporte de cobertura queda en `target/site/jacoco/index.html`
 Cobertura total: **87%**
 
 ### Análisis estático 
+<img width="1476" height="823" alt="image" src="https://github.com/user-attachments/assets/599d5e03-11eb-4b2d-9d0b-9bc966d58184" />
+
 
 ---
 
