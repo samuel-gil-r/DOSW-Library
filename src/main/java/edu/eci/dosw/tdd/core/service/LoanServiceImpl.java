@@ -34,21 +34,15 @@ public class LoanServiceImpl implements LoanService {
         if (!book.isAvailable()) {
             throw new BookNotAvailableException("Book is not available: " + book.getId());
         }
-        if (user.getActiveLoans() >= 3) {
+        long activeLoans = loans.stream()
+                .filter(l -> l.getUser().getId().equals(user.getId()) && "ACTIVE".equals(l.getStatus()))
+                .count();
+        if (activeLoans >= 3) {
             throw new LoanLimitExceededException("User has reached the loan limit: " + user.getId());
         }
 
-        Loan loan = new Loan();
-        loan.setId(UUID.randomUUID().toString());
-        loan.setBookId(book.getId());
-        loan.setUserId(user.getId());
-        loan.setLoanDate(LocalDate.now());
-        loan.setReturnDate(loanDTO.getReturnDate());
-        loan.setStatus("ACTIVE");
-
         book.setAvailable(false);
-        user.setActiveLoans(user.getActiveLoans() + 1);
-
+        Loan loan = new Loan(UUID.randomUUID().toString(), book, user, LocalDate.now(), loanDTO.getReturnDate(), "ACTIVE");
         loans.add(loan);
         return toDTO(loan);
     }
@@ -68,7 +62,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     private LoanDTO toDTO(Loan loan) {
-        return new LoanDTO(loan.getBookId(), loan.getUserId(),
+        return new LoanDTO(loan.getBook().getId(), loan.getUser().getId(),
                 loan.getLoanDate(), loan.getReturnDate(), loan.getStatus());
     }
 }

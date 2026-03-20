@@ -1,50 +1,41 @@
 package edu.eci.dosw.tdd.controller;
 
-import edu.eci.dosw.tdd.controller.dto.BookDTO;
-import edu.eci.dosw.tdd.controller.mapper.BookMapper;
-import edu.eci.dosw.tdd.core.service.BookService;
-import lombok.extern.slf4j.Slf4j;
+import edu.eci.dosw.tdd.controller.dto.BookRequestDTO;
+import edu.eci.dosw.tdd.core.model.Book;
+import edu.eci.dosw.tdd.core.service.LibraryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
+@Tag(name = "Books", description = "Book management endpoints")
 @RestController
 @RequestMapping("/api/books")
+@RequiredArgsConstructor
 public class BookController {
 
-    private final BookService bookService;
-    private final BookMapper bookMapper;
+    private final LibraryService libraryService;
 
-    public BookController(BookService bookService, BookMapper bookMapper) {
-        this.bookService = bookService;
-        this.bookMapper = bookMapper;
-    }
-
+    @Operation(summary = "Add a new book")
     @PostMapping
-    public ResponseEntity<BookDTO> addBook(@RequestBody BookDTO bookDTO) {
-        log.info("POST /api/books - addBook: {}", bookDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(bookService.addBook(bookDTO));
+    public ResponseEntity<Book> addBook(@RequestBody BookRequestDTO body) {
+        Book book = libraryService.addBook(body.getId(), body.getTitle(), body.getAuthor());
+        return ResponseEntity.status(HttpStatus.CREATED).body(book);
     }
 
+    @Operation(summary = "Get all books")
     @GetMapping
-    public ResponseEntity<List<BookDTO>> getAllBooks() {
-        log.info("GET /api/books - getAllBooks");
-        return ResponseEntity.ok(bookService.getAllBooks());
+    public ResponseEntity<List<Book>> getAllBooks() {
+        return ResponseEntity.ok(libraryService.getAllBooks());
     }
 
+    @Operation(summary = "Get a book by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<BookDTO> getBookById(@PathVariable String id) {
-        log.info("GET /api/books/{} - getBookById", id);
-        return ResponseEntity.ok(bookService.getBookById(id));
-    }
-
-    @PatchMapping("/{id}/availability")
-    public ResponseEntity<BookDTO> updateAvailability(@PathVariable String id,
-                                                      @RequestParam boolean available) {
-        log.info("PATCH /api/books/{}/availability - updateAvailability: {}", id, available);
-        return ResponseEntity.ok(bookService.updateAvailability(id, available));
+    public ResponseEntity<Book> getBook(@PathVariable String id) {
+        return ResponseEntity.ok(libraryService.getBook(id));
     }
 }

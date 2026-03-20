@@ -31,4 +31,26 @@ class BookServiceImplTest {
     void testGetBookById_notFound() {
         assertThrows(BookNotFoundException.class, () -> bookService.getBookById("nonexistent-id"));
     }
+
+    @Test
+    void testGetAllBooks_returnsAll() {
+        bookService.addBook(new BookDTO(null, "Book A", "Author A"));
+        bookService.addBook(new BookDTO(null, "Book B", "Author B"));
+        assertEquals(2, bookService.getAllBooks().size());
+    }
+
+    @Test
+    void testUpdateAvailability_success() {
+        BookDTO added = bookService.addBook(new BookDTO(null, "Clean Code", "Martin"));
+        BookDTO updated = bookService.updateAvailability(added.getId(), false);
+        assertEquals(added.getId(), updated.getId());
+    }
+
+    @Test
+    void testGetBookById_success() {
+        BookDTO added = bookService.addBook(new BookDTO(null, "Refactoring", "Fowler"));
+        BookDTO found = bookService.getBookById(added.getId());
+        assertEquals(added.getId(), found.getId());
+        assertEquals("Refactoring", found.getTitle());
+    }
 }

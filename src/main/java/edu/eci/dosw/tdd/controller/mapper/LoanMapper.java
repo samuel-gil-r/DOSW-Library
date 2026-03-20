@@ -9,15 +9,13 @@ public class LoanMapper {
 
     public LoanDTO toDTO(Loan loan) {
         if (loan == null) return null;
-        return new LoanDTO(loan.getBookId(), loan.getUserId(),
+        return new LoanDTO(loan.getBook().getId(), loan.getUser().getId(),
                 loan.getLoanDate(), loan.getReturnDate(), loan.getStatus());
     }
 
     public Loan toModel(LoanDTO dto) {
         if (dto == null) return null;
         Loan loan = new Loan();
-        loan.setBookId(dto.getBookId());
-        loan.setUserId(dto.getUserId());
         loan.setLoanDate(dto.getLoanDate());
         loan.setReturnDate(dto.getReturnDate());
         loan.setStatus(dto.getStatus());
