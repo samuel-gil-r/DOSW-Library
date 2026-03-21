@@ -36,18 +36,24 @@ El proyecto sigue una arquitectura en capas:
 
 ## Diagrama General
 
+<img width="900" height="432" alt="image" src="https://github.com/user-attachments/assets/8f10de4d-a09a-4966-b4d1-50e736aba134" />
 
 
 ---
 
 ## Diagrama Específico
 
+<img width="1690" height="854" alt="image" src="https://github.com/user-attachments/assets/ea61f77c-58d2-4e04-a2b9-ac1b3ca108ed" />
 
+El Controller recibe las peticiones, usa los Mappers para convertir DTOs a modelos, los Validators para validar entradas, y delega la lógica al Service  
 
 ---
 
-## Diagrama de Clases
+## Diagrama de Clases  
 
+<img width="1252" height="688" alt="image" src="https://github.com/user-attachments/assets/93c1acc8-9349-4b1d-a80e-4727f8ab3fc0" />
+
+Muestra las entidades del dominio y sus relaciones. Un Loan referencia un Book y un User. LibraryService gestiona las tres entidades usando un Map para controlar ejemplares disponibles. Las excepciones (BookNotFoundException, UserNotFoundException, BookNotAvailableException, LoanLimitExceededException) son lanzadas por el servicio y manejadas por GlobalExceptionHandler.  
 
 ---
 ## Cómo correr el proyecto
