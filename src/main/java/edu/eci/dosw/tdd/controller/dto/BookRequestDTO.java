@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BookRequestDTO {
 
-    @Schema(example = "B001")
+    @Schema(example = "")
     private String id;
 
     @Schema(example = "Clean Code")
@@ -18,4 +18,7 @@ public class BookRequestDTO {
 
     @Schema(example = "Robert C. Martin")
     private String author;
+
+    @Schema(example = "5")
+    private int totalStock;
 }

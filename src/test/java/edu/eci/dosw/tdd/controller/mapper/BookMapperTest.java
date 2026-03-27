@@ -17,7 +17,7 @@ class BookMapperTest {
 
     @Test
     void toDTO_mapsAllFields() {
-        Book book = new Book("1", "Clean Code", "Martin", true);
+        Book book = new Book("1", "Clean Code", "Martin", 5, 5);
         BookDTO dto = mapper.toDTO(book);
         assertEquals("1", dto.getId());
         assertEquals("Clean Code", dto.getTitle());

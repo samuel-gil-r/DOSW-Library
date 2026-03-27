@@ -9,8 +9,8 @@ public class LoanMapper {
 
     public LoanDTO toDTO(Loan loan) {
         if (loan == null) return null;
-        return new LoanDTO(loan.getBook().getId(), loan.getUser().getId(),
-                loan.getLoanDate(), loan.getReturnDate(), loan.getStatus());
+        return new LoanDTO(loan.getBookId(), loan.getUserId(),
+                loan.getLoanDate(), loan.getReturnDate(), loan.getStatus().name());
     }
 
     public Loan toModel(LoanDTO dto) {
@@ -18,7 +18,7 @@ public class LoanMapper {
         Loan loan = new Loan();
         loan.setLoanDate(dto.getLoanDate());
         loan.setReturnDate(dto.getReturnDate());
-        loan.setStatus(dto.getStatus());
+        loan.setStatus(edu.eci.dosw.tdd.core.model.LoanStatus.valueOf(dto.getStatus()));
         return loan;
     }
 }

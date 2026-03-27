@@ -2,9 +2,8 @@ package edu.eci.dosw.tdd.controller;
 
 import edu.eci.dosw.tdd.core.exception.BookNotAvailableException;
 import edu.eci.dosw.tdd.core.exception.LoanLimitExceededException;
-import edu.eci.dosw.tdd.core.model.Book;
 import edu.eci.dosw.tdd.core.model.Loan;
-import edu.eci.dosw.tdd.core.model.User;
+import edu.eci.dosw.tdd.core.model.LoanStatus;
 import edu.eci.dosw.tdd.core.service.LibraryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,9 +34,6 @@ class LoanControllerTest {
     @InjectMocks
     LoanController loanController;
 
-    private final Book book = new Book("book-1", "Clean Code", "Martin", true);
-    private final User user = new User("user-1", "Alice");
-
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
@@ -48,7 +44,7 @@ class LoanControllerTest {
 
     @Test
     void loanBook_returns201() throws Exception {
-        Loan loan = new Loan("loan-1", book, user, LocalDate.now(), null, "ACTIVE");
+        Loan loan = new Loan("loan-1", "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
         when(libraryService.loanBook("book-1", "user-1")).thenReturn(loan);
 
         mockMvc.perform(post("/api/loans")
@@ -59,16 +55,16 @@ class LoanControllerTest {
     }
 
     @Test
-    void loanBook_bookNotAvailable_returns404() throws Exception {
+    void loanBook_bookNotAvailable_returns409() throws Exception {
         when(libraryService.loanBook(anyString(), anyString()))
                 .thenThrow(new BookNotAvailableException("Book is not available: book-1"));
 
         mockMvc.perform(post("/api/loans")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":\"book-1\",\"userId\":\"user-1\"}"))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Book is not available: book-1"))
-                .andExpect(jsonPath("$.status").value(404));
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test
@@ -86,7 +82,7 @@ class LoanControllerTest {
 
     @Test
     void getAllLoans_returns200() throws Exception {
-        Loan loan = new Loan("loan-1", book, user, LocalDate.now(), null, "ACTIVE");
+        Loan loan = new Loan("loan-1", "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
         when(libraryService.getAllLoans()).thenReturn(List.of(loan));
 
         mockMvc.perform(get("/api/loans"))
@@ -96,7 +92,7 @@ class LoanControllerTest {
 
     @Test
     void getLoanById_returns200() throws Exception {
-        Loan loan = new Loan("loan-1", book, user, LocalDate.now(), null, "ACTIVE");
+        Loan loan = new Loan("loan-1", "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
         when(libraryService.getLoanById("loan-1")).thenReturn(loan);
 
         mockMvc.perform(get("/api/loans/loan-1"))
@@ -106,7 +102,7 @@ class LoanControllerTest {
 
     @Test
     void returnBook_returns200() throws Exception {
-        Loan loan = new Loan("loan-1", book, user, LocalDate.now(), LocalDate.now(), "RETURNED");
+        Loan loan = new Loan("loan-1", "book-1", "user-1", LocalDate.now(), LocalDate.now(), LoanStatus.RETURNED);
         when(libraryService.returnBook("loan-1")).thenReturn(loan);
 
         mockMvc.perform(put("/api/loans/loan-1/return"))
@@ -116,7 +112,7 @@ class LoanControllerTest {
 
     @Test
     void getLoansByUser_returns200() throws Exception {
-        Loan loan = new Loan("loan-1", book, user, LocalDate.now(), null, "ACTIVE");
+        Loan loan = new Loan("loan-1", "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
         when(libraryService.getLoansByUser("user-1")).thenReturn(List.of(loan));
 
         mockMvc.perform(get("/api/loans/user/user-1"))

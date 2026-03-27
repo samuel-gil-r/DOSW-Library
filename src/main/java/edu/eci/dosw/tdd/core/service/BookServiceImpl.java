@@ -19,7 +19,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookDTO addBook(BookDTO bookDTO) {
         String id = UUID.randomUUID().toString();
-        Book book = new Book(id, bookDTO.getTitle(), bookDTO.getAuthor(), true);
+        Book book = new Book(id, bookDTO.getTitle(), bookDTO.getAuthor(), 1, 1);
         books.put(id, book);
         return toDTO(book);
     }
@@ -37,7 +37,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookDTO updateAvailability(String id, boolean available) {
         Book book = findBook(id);
-        book.setAvailable(available);
+        book.setAvailableStock(available ? book.getTotalStock() : 0);
         return toDTO(book);
     }
 

@@ -5,6 +5,7 @@ import edu.eci.dosw.tdd.core.exception.BookNotAvailableException;
 import edu.eci.dosw.tdd.core.exception.LoanLimitExceededException;
 import edu.eci.dosw.tdd.core.model.Book;
 import edu.eci.dosw.tdd.core.model.Loan;
+import edu.eci.dosw.tdd.core.model.LoanStatus;
 import edu.eci.dosw.tdd.core.model.User;
 import org.springframework.stereotype.Service;
 
@@ -31,18 +32,19 @@ public class LoanServiceImpl implements LoanService {
         Book book = bookService.findBook(loanDTO.getBookId());
         User user = userService.findUser(loanDTO.getUserId());
 
-        if (!book.isAvailable()) {
+        if (book.getAvailableStock() <= 0) {
             throw new BookNotAvailableException("Book is not available: " + book.getId());
         }
         long activeLoans = loans.stream()
-                .filter(l -> l.getUser().getId().equals(user.getId()) && "ACTIVE".equals(l.getStatus()))
+                .filter(l -> l.getUserId().equals(user.getId()) && LoanStatus.ACTIVE == l.getStatus())
                 .count();
         if (activeLoans >= 3) {
             throw new LoanLimitExceededException("User has reached the loan limit: " + user.getId());
         }
 
-        book.setAvailable(false);
-        Loan loan = new Loan(UUID.randomUUID().toString(), book, user, LocalDate.now(), loanDTO.getReturnDate(), "ACTIVE");
+        book.setAvailableStock(Math.max(0, book.getAvailableStock() - 1));
+        Loan loan = new Loan(UUID.randomUUID().toString(), book.getId(), user.getId(),
+                LocalDate.now(), loanDTO.getReturnDate(), LoanStatus.ACTIVE);
         loans.add(loan);
         return toDTO(loan);
     }
@@ -62,7 +64,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     private LoanDTO toDTO(Loan loan) {
-        return new LoanDTO(loan.getBook().getId(), loan.getUser().getId(),
-                loan.getLoanDate(), loan.getReturnDate(), loan.getStatus());
+        return new LoanDTO(loan.getBookId(), loan.getUserId(),
+                loan.getLoanDate(), loan.getReturnDate(), loan.getStatus().name());
     }
 }

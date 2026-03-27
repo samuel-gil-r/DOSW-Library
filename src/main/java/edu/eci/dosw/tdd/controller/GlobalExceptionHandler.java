@@ -6,6 +6,8 @@ import edu.eci.dosw.tdd.core.exception.LoanLimitExceededException;
 import edu.eci.dosw.tdd.core.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -28,14 +30,32 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BookNotAvailableException.class)
     public ResponseEntity<Map<String, Object>> handleBookNotAvailable(BookNotAvailableException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", ex.getMessage(), "status", HttpStatus.NOT_FOUND.value()));
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage(), "status", HttpStatus.CONFLICT.value()));
     }
 
     @ExceptionHandler(LoanLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleLoanLimitExceeded(LoanLimitExceededException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", ex.getMessage(), "status", HttpStatus.UNPROCESSABLE_ENTITY.value()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage(), "status", HttpStatus.CONFLICT.value()));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", ex.getMessage(), "status", HttpStatus.UNAUTHORIZED.value()));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Access denied", "status", HttpStatus.FORBIDDEN.value()));
     }
 
     @ExceptionHandler(Exception.class)

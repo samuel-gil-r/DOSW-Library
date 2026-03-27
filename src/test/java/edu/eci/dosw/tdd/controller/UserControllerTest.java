@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,8 +41,8 @@ class UserControllerTest {
 
     @Test
     void registerUser_returns201() throws Exception {
-        User user = new User("1", "Alice");
-        when(libraryService.registerUser(null, "Alice")).thenReturn(user);
+        User user = new User("1", "Alice", "alice", null, "USER");
+        when(libraryService.registerUser(any(), eq("Alice"), any(), any(), any())).thenReturn(user);
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -55,8 +55,8 @@ class UserControllerTest {
     @Test
     void getAllUsers_returns200() throws Exception {
         when(libraryService.getAllUsers()).thenReturn(List.of(
-                new User("1", "Alice"),
-                new User("2", "Bob")
+                new User("1", "Alice", "alice", null, "USER"),
+                new User("2", "Bob", "bob", null, "USER")
         ));
 
         mockMvc.perform(get("/api/users"))
@@ -66,7 +66,7 @@ class UserControllerTest {
 
     @Test
     void getUser_returns200() throws Exception {
-        User user = new User("1", "Alice");
+        User user = new User("1", "Alice", "alice", null, "USER");
         when(libraryService.getUser("1")).thenReturn(user);
 
         mockMvc.perform(get("/api/users/1"))

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,18 +24,20 @@ public class UserController {
     @Operation(summary = "Register a new user")
     @PostMapping
     public ResponseEntity<User> registerUser(@RequestBody UserRequestDTO body) {
-        User user = libraryService.registerUser(body.getId(), body.getName());
+        User user = libraryService.registerUser(body.getId(), body.getName(), body.getUsername(), body.getPassword(), body.getRole());
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
     @Operation(summary = "Get all users")
     @GetMapping
+    @PreAuthorize("hasRole('LIBRARIAN')")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(libraryService.getAllUsers());
     }
 
     @Operation(summary = "Get a user by ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('LIBRARIAN')")
     public ResponseEntity<User> getUser(@PathVariable String id) {
         return ResponseEntity.ok(libraryService.getUser(id));
     }

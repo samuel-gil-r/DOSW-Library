@@ -17,7 +17,7 @@ class UserMapperTest {
 
     @Test
     void toDTO_mapsAllFields() {
-        User user = new User("1", "Alice");
+        User user = new User("1", "Alice", null, null, null);
         UserDTO dto = mapper.toDTO(user);
         assertEquals("1", dto.getId());
         assertEquals("Alice", dto.getName());

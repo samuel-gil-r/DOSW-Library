@@ -1,17 +1,21 @@
-package edu.eci.dosw.tdd.core.model;
+package edu.eci.dosw.tdd.persistence.entity;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
+@Entity
+@Table(name = "books")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Book {
-    @EqualsAndHashCode.Include
-    private String id;
+public class BookEntity {
+
+    @Id
+    private UUID id;
     private String title;
     private String author;
     private int totalStock;

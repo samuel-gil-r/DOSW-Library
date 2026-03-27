@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,12 +30,14 @@ public class LoanController {
 
     @Operation(summary = "Get all loans")
     @GetMapping
+    @PreAuthorize("hasRole('LIBRARIAN')")
     public ResponseEntity<List<Loan>> getAllLoans() {
         return ResponseEntity.ok(libraryService.getAllLoans());
     }
 
     @Operation(summary = "Get a loan by ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('LIBRARIAN')")
     public ResponseEntity<Loan> getLoanById(@PathVariable String id) {
         return ResponseEntity.ok(libraryService.getLoanById(id));
     }

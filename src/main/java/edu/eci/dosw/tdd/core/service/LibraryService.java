@@ -4,117 +4,150 @@ import edu.eci.dosw.tdd.core.exception.BookNotAvailableException;
 import edu.eci.dosw.tdd.core.exception.BookNotFoundException;
 import edu.eci.dosw.tdd.core.exception.LoanLimitExceededException;
 import edu.eci.dosw.tdd.core.exception.UserNotFoundException;
-import edu.eci.dosw.tdd.core.model.Book;
-import edu.eci.dosw.tdd.core.model.Loan;
-import edu.eci.dosw.tdd.core.model.User;
+import edu.eci.dosw.tdd.core.model.*;
+import edu.eci.dosw.tdd.persistence.entity.BookEntity;
+import edu.eci.dosw.tdd.persistence.entity.LoanEntity;
+import edu.eci.dosw.tdd.persistence.entity.UserEntity;
+import edu.eci.dosw.tdd.persistence.mapper.BookEntityMapper;
+import edu.eci.dosw.tdd.persistence.mapper.LoanEntityMapper;
+import edu.eci.dosw.tdd.persistence.mapper.UserEntityMapper;
+import edu.eci.dosw.tdd.persistence.repository.BookRepository;
+import edu.eci.dosw.tdd.persistence.repository.LoanRepository;
+import edu.eci.dosw.tdd.persistence.repository.UserRepository;
 import edu.eci.dosw.tdd.util.ValidationUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class LibraryService {
 
-    private final Map<Book, Integer> books = new HashMap<>();
-    private final List<User> users = new ArrayList<>();
-    private final List<Loan> loans = new ArrayList<>();
+    private final BookRepository bookRepository;
+    private final UserRepository userRepository;
+    private final LoanRepository loanRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public Book addBook(String id, String title, String author) {
+    @Transactional
+    public Book addBook(String id, String title, String author, int totalStock) {
         ValidationUtil.requireNonBlank(title, "title");
         ValidationUtil.requireNonBlank(author, "author");
         String bookId = (id != null && !id.isBlank()) ? id : UUID.randomUUID().toString();
-        Book book = new Book(bookId, title, author, true);
-        books.put(book, 1);
-        return book;
+        BookEntity entity = new BookEntity(UUID.fromString(bookId), title, author, totalStock, totalStock);
+        bookRepository.save(entity);
+        return BookEntityMapper.toDomain(entity);
     }
 
     public Book getBook(String id) {
         ValidationUtil.requireNonBlank(id, "id");
-        return books.keySet().stream()
-                .filter(b -> b.getId().equals(id))
-                .findFirst()
+        BookEntity entity = bookRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new BookNotFoundException("Book not found: " + id));
+        return BookEntityMapper.toDomain(entity);
     }
 
     public List<Book> getAllBooks() {
-        return new ArrayList<>(books.keySet());
+        return bookRepository.findAll().stream()
+                .map(BookEntityMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
-    public User registerUser(String id, String name) {
+    @Transactional
+    public User registerUser(String id, String name, String username, String rawPassword, String role) {
         ValidationUtil.requireNonBlank(name, "name");
+        ValidationUtil.requireNonBlank(username, "username");
+        ValidationUtil.requireNonBlank(rawPassword, "password");
         String userId = (id != null && !id.isBlank()) ? id : UUID.randomUUID().toString();
-        User user = new User(userId, name);
-        users.add(user);
-        return user;
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        UserRole userRole = (role != null) ? UserRole.valueOf(role.toUpperCase()) : UserRole.USER;
+        UserEntity entity = new UserEntity(UUID.fromString(userId), name, username, encodedPassword, userRole);
+        userRepository.save(entity);
+        return UserEntityMapper.toDomain(entity);
     }
 
     public User getUser(String id) {
         ValidationUtil.requireNonBlank(id, "id");
-        return users.stream()
-                .filter(u -> u.getId().equals(id))
-                .findFirst()
+        UserEntity entity = userRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+        return UserEntityMapper.toDomain(entity);
+    }
+
+    public User getUserByUsername(String username) {
+        UserEntity entity = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        return UserEntityMapper.toDomain(entity);
     }
 
     public List<User> getAllUsers() {
-        return new ArrayList<>(users);
+        return userRepository.findAll().stream()
+                .map(UserEntityMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
+    @Transactional
     public Loan loanBook(String bookId, String userId) {
-        Book book = getBook(bookId);
-        User user = getUser(userId);
-        int copies = books.getOrDefault(book, 0);
-        if (copies <= 0) {
+        BookEntity bookEntity = bookRepository.findById(UUID.fromString(bookId))
+                .orElseThrow(() -> new BookNotFoundException("Book not found: " + bookId));
+        if (bookEntity.getAvailableStock() <= 0) {
             throw new BookNotAvailableException("Book is not available: " + bookId);
         }
-        long activeLoans = loans.stream()
-                .filter(l -> l.getUser().getId().equals(userId) && "ACTIVE".equals(l.getStatus()))
-                .count();
+        userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
+        long activeLoans = loanRepository.countByUserIdAndStatus(UUID.fromString(userId), LoanStatus.ACTIVE);
         if (activeLoans >= 3) {
             throw new LoanLimitExceededException("Loan limit exceeded for user: " + userId);
         }
-        books.put(book, copies - 1);
-        book.setAvailable(copies - 1 > 0);
-        Loan loan = new Loan(UUID.randomUUID().toString(), book, user, LocalDate.now(), null, "ACTIVE");
-        loans.add(loan);
-        return loan;
+        bookEntity.setAvailableStock(bookEntity.getAvailableStock() - 1);
+        bookRepository.save(bookEntity);
+        LoanEntity loanEntity = new LoanEntity(
+                UUID.randomUUID(), UUID.fromString(bookId), UUID.fromString(userId),
+                LocalDate.now(), null, LoanStatus.ACTIVE
+        );
+        loanRepository.save(loanEntity);
+        return LoanEntityMapper.toDomain(loanEntity);
     }
 
+    @Transactional
     public Loan returnBook(String loanId) {
         ValidationUtil.requireNonBlank(loanId, "loanId");
-        Loan loan = loans.stream()
-                .filter(l -> l.getId().equals(loanId) && "ACTIVE".equals(l.getStatus()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Active loan not found: " + loanId));
-        loan.setStatus("RETURNED");
-        loan.setReturnDate(LocalDate.now());
-        books.computeIfPresent(loan.getBook(), (b, count) -> count + 1);
-        loan.getBook().setAvailable(true);
-        return loan;
+        LoanEntity loanEntity = loanRepository.findById(UUID.fromString(loanId))
+                .orElseThrow(() -> new RuntimeException("Loan not found: " + loanId));
+        if (loanEntity.getStatus() == LoanStatus.RETURNED) {
+            throw new IllegalStateException("Loan already returned: " + loanId);
+        }
+        loanEntity.setStatus(LoanStatus.RETURNED);
+        loanEntity.setReturnDate(LocalDate.now());
+        loanRepository.save(loanEntity);
+        bookRepository.findById(loanEntity.getBookId()).ifPresent(book -> {
+            book.setAvailableStock(Math.min(book.getAvailableStock() + 1, book.getTotalStock()));
+            bookRepository.save(book);
+        });
+        return LoanEntityMapper.toDomain(loanEntity);
     }
 
     public List<Loan> getLoansByUser(String userId) {
-        getUser(userId);
-        return loans.stream()
-                .filter(l -> l.getUser().getId().equals(userId))
+        userRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
+        return loanRepository.findByUserId(UUID.fromString(userId)).stream()
+                .map(LoanEntityMapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     public List<Loan> getAllLoans() {
-        return new ArrayList<>(loans);
+        return loanRepository.findAll().stream()
+                .map(LoanEntityMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     public Loan getLoanById(String id) {
         ValidationUtil.requireNonBlank(id, "id");
-        return loans.stream()
-                .filter(l -> l.getId().equals(id))
-                .findFirst()
+        return loanRepository.findById(UUID.fromString(id))
+                .map(LoanEntityMapper::toDomain)
                 .orElseThrow(() -> new RuntimeException("Loan not found: " + id));
     }
 }

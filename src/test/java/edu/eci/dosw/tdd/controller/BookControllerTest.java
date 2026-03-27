@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,8 +41,8 @@ class BookControllerTest {
 
     @Test
     void addBook_returns201() throws Exception {
-        Book book = new Book("1", "Clean Code", "Robert C. Martin", true);
-        when(libraryService.addBook(null, "Clean Code", "Robert C. Martin")).thenReturn(book);
+        Book book = new Book("1", "Clean Code", "Robert C. Martin", 5, 5);
+        when(libraryService.addBook(any(), anyString(), anyString(), anyInt())).thenReturn(book);
 
         mockMvc.perform(post("/api/books")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -55,8 +55,8 @@ class BookControllerTest {
     @Test
     void getAllBooks_returns200() throws Exception {
         when(libraryService.getAllBooks()).thenReturn(List.of(
-                new Book("1", "Clean Code", "Martin", true),
-                new Book("2", "Refactoring", "Fowler", true)
+                new Book("1", "Clean Code", "Martin", 5, 5),
+                new Book("2", "Refactoring", "Fowler", 3, 3)
         ));
 
         mockMvc.perform(get("/api/books"))
@@ -66,7 +66,7 @@ class BookControllerTest {
 
     @Test
     void getBook_returns200() throws Exception {
-        Book book = new Book("1", "Clean Code", "Martin", true);
+        Book book = new Book("1", "Clean Code", "Martin", 5, 5);
         when(libraryService.getBook("1")).thenReturn(book);
 
         mockMvc.perform(get("/api/books/1"))
