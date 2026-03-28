@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: mongo
   application:
     name: DOSW-Library
   datasource:
@@ -6,6 +8,10 @@ spring:
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+  data:
+    mongodb:
+      uri: mongodb+srv://samuel:mongo1234@cluster0.qlpgzqc.mongodb.net/dosw_library?appName=Cluster0
+      database: dosw_library
   jpa:
     hibernate:
       ddl-auto: update
@@ -13,7 +19,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
 app:
   jwt:
     secret: dosw-library-secret-key-for-jwt-signing-minimum-256-bits-2024
