@@ -1,69 +1,113 @@
 package edu.eci.dosw.tdd;
 
-import edu.eci.dosw.tdd.controller.dto.BookDTO;
-import edu.eci.dosw.tdd.controller.dto.LoanDTO;
-import edu.eci.dosw.tdd.controller.dto.UserDTO;
-import edu.eci.dosw.tdd.core.exception.BookNotAvailableException;
-import edu.eci.dosw.tdd.core.exception.LoanLimitExceededException;
-import edu.eci.dosw.tdd.core.service.BookServiceImpl;
-import edu.eci.dosw.tdd.core.service.LoanServiceImpl;
-import edu.eci.dosw.tdd.core.service.UserServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
+import edu.eci.dosw.tdd.core.model.Book;
+import edu.eci.dosw.tdd.core.model.Loan;
+import edu.eci.dosw.tdd.core.model.LoanStatus;
+import edu.eci.dosw.tdd.core.model.User;
+import edu.eci.dosw.tdd.core.repository.BookRepositoryPort;
+import edu.eci.dosw.tdd.core.repository.LoanRepositoryPort;
+import edu.eci.dosw.tdd.core.repository.UserRepositoryPort;
+import edu.eci.dosw.tdd.core.service.LibraryService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class LoanServiceImplTest {
 
-    private BookServiceImpl bookService;
-    private UserServiceImpl userService;
-    private LoanServiceImpl loanService;
+    @Mock
+    private LoanRepositoryPort loanRepository;
 
-    @BeforeEach
-    void setUp() {
-        bookService = new BookServiceImpl();
-        userService = new UserServiceImpl();
-        loanService = new LoanServiceImpl(bookService, userService);
-    }
+    @Mock
+    private BookRepositoryPort bookRepository;
+
+    @Mock
+    private UserRepositoryPort userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @InjectMocks
+    private LibraryService libraryService;
 
     @Test
-    void testCreateLoan_success() {
-        BookDTO book = bookService.addBook(new BookDTO(null, "Effective Java", "Joshua Bloch"));
-        UserDTO user = userService.registerUser(new UserDTO(null, "Bob"));
+    void dadoQueTengo1ReservaRegistrada_cuandoLoConsultoANivelDeServicio_entoncesLaConsultaSeraExitosaValidandoElCampoId() {
+        String loanId = "loan-123";
+        Loan loan = new Loan(loanId, "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
+        when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
 
-        LoanDTO loanDTO = new LoanDTO(book.getId(), user.getId(), null, null, null);
-        LoanDTO result = loanService.createLoan(loanDTO);
+        Loan result = libraryService.getLoanById(loanId);
 
         assertNotNull(result);
-        assertEquals(book.getId(), result.getBookId());
-        assertEquals(user.getId(), result.getUserId());
-        assertEquals("ACTIVE", result.getStatus());
-        assertNotNull(result.getLoanDate());
+        assertEquals(loanId, result.getId());
     }
 
     @Test
-    void testCreateLoan_bookNotAvailable() {
-        BookDTO book = bookService.addBook(new BookDTO(null, "The Pragmatic Programmer", "Andy Hunt"));
-        UserDTO user1 = userService.registerUser(new UserDTO(null, "Carol"));
-        UserDTO user2 = userService.registerUser(new UserDTO(null, "Dave"));
+    void dadoQueNoHayNingunaReservaRegistrada_cuandoLaConsulto_entoncesNoRetornaNingunResultado() {
+        when(loanRepository.findAll()).thenReturn(Collections.emptyList());
 
-        loanService.createLoan(new LoanDTO(book.getId(), user1.getId(), null, null, null));
+        List<Loan> result = libraryService.getAllLoans();
 
-        assertThrows(BookNotAvailableException.class, () ->
-                loanService.createLoan(new LoanDTO(book.getId(), user2.getId(), null, null, null)));
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void testCreateLoan_loanLimitExceeded() {
-        UserDTO user = userService.registerUser(new UserDTO(null, "Eve"));
+    void dadoQueNoHayNingunaReservaRegistrada_cuandoLaCreo_entoncesLaCreacionSeraExitosa() {
+        String bookId = "book-1";
+        String userId = "user-1";
+        Book book = new Book(bookId, "Effective Java", "Joshua Bloch", 5, 5);
+        User user = new User(userId, "Alice", "alice", "encoded", "USER");
+        Loan savedLoan = new Loan("loan-1", bookId, userId, LocalDate.now(), null, LoanStatus.ACTIVE);
 
-        for (int i = 0; i < 3; i++) {
-            BookDTO book = bookService.addBook(new BookDTO(null, "Book " + i, "Author " + i));
-            loanService.createLoan(new LoanDTO(book.getId(), user.getId(), null, null, null));
-        }
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(book));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(loanRepository.countActiveByUserId(userId)).thenReturn(0L);
+        when(bookRepository.save(any(Book.class))).thenReturn(book);
+        when(loanRepository.save(any(Loan.class))).thenReturn(savedLoan);
 
-        BookDTO extraBook = bookService.addBook(new BookDTO(null, "Extra Book", "Author X"));
-        assertThrows(LoanLimitExceededException.class, () ->
-                loanService.createLoan(new LoanDTO(extraBook.getId(), user.getId(), null, null, null)));
+        Loan result = libraryService.loanBook(bookId, userId);
+
+        assertNotNull(result);
+        assertEquals(bookId, result.getBookId());
+        assertEquals(userId, result.getUserId());
+        assertEquals(LoanStatus.ACTIVE, result.getStatus());
+    }
+
+    @Test
+    void dadoQueTengo1ReservaRegistrada_cuandoLaElimino_entoncesLaEliminacionSeraExitosa() {
+        String loanId = "loan-123";
+        Loan loan = new Loan(loanId, "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
+        when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
+
+        assertDoesNotThrow(() -> libraryService.deleteLoan(loanId));
+
+        verify(loanRepository).delete(loanId);
+    }
+
+    @Test
+    void dadoQueTengo1ReservaRegistrada_cuandoLaEliminoYConsulto_entoncesNoRetornaNingunResultado() {
+        String loanId = "loan-123";
+        Loan loan = new Loan(loanId, "book-1", "user-1", LocalDate.now(), null, LoanStatus.ACTIVE);
+        when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
+        when(loanRepository.findAll()).thenReturn(Collections.emptyList());
+
+        libraryService.deleteLoan(loanId);
+        List<Loan> result = libraryService.getAllLoans();
+
+        assertTrue(result.isEmpty());
+        verify(loanRepository).delete(loanId);
     }
 }

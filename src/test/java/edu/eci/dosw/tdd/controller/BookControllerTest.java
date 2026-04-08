@@ -42,11 +42,11 @@ class BookControllerTest {
     @Test
     void addBook_returns201() throws Exception {
         Book book = new Book("1", "Clean Code", "Robert C. Martin", 5, 5);
-        when(libraryService.addBook(any(), anyString(), anyString(), anyInt())).thenReturn(book);
+        when(libraryService.addBook(any(), any(), any(), anyInt())).thenReturn(book);
 
         mockMvc.perform(post("/api/books")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Clean Code\",\"author\":\"Robert C. Martin\"}"))
+                        .content("{\"title\":\"Clean Code\",\"author\":\"Robert C. Martin\",\"totalStock\":5}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.title").value("Clean Code"));

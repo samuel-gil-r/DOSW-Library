@@ -8,14 +8,10 @@ import edu.eci.dosw.tdd.core.model.Book;
 import edu.eci.dosw.tdd.core.model.Loan;
 import edu.eci.dosw.tdd.core.model.LoanStatus;
 import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.core.model.UserRole;
+import edu.eci.dosw.tdd.core.repository.BookRepositoryPort;
+import edu.eci.dosw.tdd.core.repository.LoanRepositoryPort;
+import edu.eci.dosw.tdd.core.repository.UserRepositoryPort;
 import edu.eci.dosw.tdd.core.service.LibraryService;
-import edu.eci.dosw.tdd.persistence.entity.BookEntity;
-import edu.eci.dosw.tdd.persistence.entity.LoanEntity;
-import edu.eci.dosw.tdd.persistence.entity.UserEntity;
-import edu.eci.dosw.tdd.persistence.repository.BookRepository;
-import edu.eci.dosw.tdd.persistence.repository.LoanRepository;
-import edu.eci.dosw.tdd.persistence.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,26 +31,26 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class LibraryServiceTest {
 
-    @Mock BookRepository bookRepository;
-    @Mock UserRepository userRepository;
-    @Mock LoanRepository loanRepository;
+    @Mock BookRepositoryPort bookRepository;
+    @Mock UserRepositoryPort userRepository;
+    @Mock LoanRepositoryPort loanRepository;
     @Mock PasswordEncoder passwordEncoder;
     @InjectMocks LibraryService libraryService;
 
-    private final UUID BOOK_ID = UUID.randomUUID();
-    private final UUID USER_ID = UUID.randomUUID();
-    private final UUID LOAN_ID = UUID.randomUUID();
+    private final String BOOK_ID = UUID.randomUUID().toString();
+    private final String USER_ID = UUID.randomUUID().toString();
+    private final String LOAN_ID = UUID.randomUUID().toString();
 
-    private BookEntity bookEntity(UUID id, int total, int available) {
-        return new BookEntity(id, "Test Book", "Author", total, available);
+    private Book book(String id, int total, int available) {
+        return new Book(id, "Test Book", "Author", total, available);
     }
 
-    private UserEntity userEntity(UUID id) {
-        return new UserEntity(id, "Alice", "alice", "encoded", UserRole.USER);
+    private User user(String id) {
+        return new User(id, "Alice", "alice", "encoded", "USER");
     }
 
-    private LoanEntity loanEntity(UUID id, UUID bookId, UUID userId, LoanStatus status) {
-        return new LoanEntity(id, bookId, userId, LocalDate.now(), null, status);
+    private Loan loan(String id, String bookId, String userId, LoanStatus status) {
+        return new Loan(id, bookId, userId, LocalDate.now(), null, status);
     }
 
     @Test
@@ -70,10 +66,9 @@ class LibraryServiceTest {
 
     @Test
     void getBook_shouldReturnBookById() {
-        BookEntity entity = bookEntity(BOOK_ID, 5, 5);
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(entity));
-        Book found = libraryService.getBook(BOOK_ID.toString());
-        assertEquals(BOOK_ID.toString(), found.getId());
+        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book(BOOK_ID, 5, 5)));
+        Book found = libraryService.getBook(BOOK_ID);
+        assertEquals(BOOK_ID, found.getId());
     }
 
     @Test
@@ -85,8 +80,8 @@ class LibraryServiceTest {
     @Test
     void getAllBooks_shouldReturnAllAddedBooks() {
         when(bookRepository.findAll()).thenReturn(List.of(
-                bookEntity(UUID.randomUUID(), 5, 5),
-                bookEntity(UUID.randomUUID(), 3, 3)
+                book(UUID.randomUUID().toString(), 5, 5),
+                book(UUID.randomUUID().toString(), 3, 3)
         ));
         assertEquals(2, libraryService.getAllBooks().size());
     }
@@ -102,10 +97,9 @@ class LibraryServiceTest {
 
     @Test
     void getUser_shouldReturnUserById() {
-        UserEntity entity = userEntity(USER_ID);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(entity));
-        User found = libraryService.getUser(USER_ID.toString());
-        assertEquals(USER_ID.toString(), found.getId());
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user(USER_ID)));
+        User found = libraryService.getUser(USER_ID);
+        assertEquals(USER_ID, found.getId());
     }
 
     @Test
@@ -116,80 +110,74 @@ class LibraryServiceTest {
 
     @Test
     void loanBook_shouldCreateActiveLoan() {
-        BookEntity book = bookEntity(BOOK_ID, 5, 5);
-        UserEntity user = userEntity(USER_ID);
+        Book book = book(BOOK_ID, 5, 5);
+        User user = user(USER_ID);
         when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(loanRepository.countByUserIdAndStatus(USER_ID, LoanStatus.ACTIVE)).thenReturn(0L);
+        when(loanRepository.countActiveByUserId(USER_ID)).thenReturn(0L);
         when(bookRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(loanRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        Loan loan = libraryService.loanBook(BOOK_ID.toString(), USER_ID.toString());
+        Loan loan = libraryService.loanBook(BOOK_ID, USER_ID);
         assertNotNull(loan.getId());
         assertEquals(LoanStatus.ACTIVE, loan.getStatus());
-        assertEquals(BOOK_ID.toString(), loan.getBookId());
+        assertEquals(BOOK_ID, loan.getBookId());
     }
 
     @Test
     void loanBook_shouldThrowWhenBookNotAvailable() {
-        BookEntity book = bookEntity(BOOK_ID, 1, 0);
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book));
+        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book(BOOK_ID, 1, 0)));
         assertThrows(BookNotAvailableException.class,
-                () -> libraryService.loanBook(BOOK_ID.toString(), USER_ID.toString()));
+                () -> libraryService.loanBook(BOOK_ID, USER_ID));
     }
 
     @Test
     void loanBook_shouldThrowWhenLoanLimitExceeded() {
-        BookEntity book = bookEntity(BOOK_ID, 5, 5);
-        UserEntity user = userEntity(USER_ID);
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book));
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(loanRepository.countByUserIdAndStatus(USER_ID, LoanStatus.ACTIVE)).thenReturn(3L);
+        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book(BOOK_ID, 5, 5)));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user(USER_ID)));
+        when(loanRepository.countActiveByUserId(USER_ID)).thenReturn(3L);
         assertThrows(LoanLimitExceededException.class,
-                () -> libraryService.loanBook(BOOK_ID.toString(), USER_ID.toString()));
+                () -> libraryService.loanBook(BOOK_ID, USER_ID));
     }
 
     @Test
     void returnBook_shouldMarkLoanReturnedAndMakeBookAvailable() {
-        LoanEntity loan = loanEntity(LOAN_ID, BOOK_ID, USER_ID, LoanStatus.ACTIVE);
-        BookEntity book = bookEntity(BOOK_ID, 5, 4);
-        when(loanRepository.findById(LOAN_ID)).thenReturn(Optional.of(loan));
+        Loan activeLoan = loan(LOAN_ID, BOOK_ID, USER_ID, LoanStatus.ACTIVE);
+        Book book = book(BOOK_ID, 5, 4);
+        when(loanRepository.findById(LOAN_ID)).thenReturn(Optional.of(activeLoan));
         when(loanRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(book));
         when(bookRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        Loan returned = libraryService.returnBook(LOAN_ID.toString());
+        Loan returned = libraryService.returnBook(LOAN_ID);
         assertEquals(LoanStatus.RETURNED, returned.getStatus());
         assertNotNull(returned.getReturnDate());
     }
 
     @Test
     void getLoansByUser_shouldReturnOnlyUserLoans() {
-        UserEntity user = userEntity(USER_ID);
-        LoanEntity loan = loanEntity(LOAN_ID, BOOK_ID, USER_ID, LoanStatus.ACTIVE);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(loanRepository.findByUserId(USER_ID)).thenReturn(List.of(loan));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user(USER_ID)));
+        when(loanRepository.findByUserId(USER_ID)).thenReturn(List.of(loan(LOAN_ID, BOOK_ID, USER_ID, LoanStatus.ACTIVE)));
 
-        List<Loan> loans = libraryService.getLoansByUser(USER_ID.toString());
+        List<Loan> loans = libraryService.getLoansByUser(USER_ID);
         assertEquals(1, loans.size());
-        assertEquals(BOOK_ID.toString(), loans.get(0).getBookId());
+        assertEquals(BOOK_ID, loans.get(0).getBookId());
     }
 
     @Test
     void getAllLoans_shouldReturnAllLoans() {
         when(loanRepository.findAll()).thenReturn(List.of(
-                loanEntity(UUID.randomUUID(), BOOK_ID, USER_ID, LoanStatus.ACTIVE),
-                loanEntity(UUID.randomUUID(), BOOK_ID, USER_ID, LoanStatus.ACTIVE)
+                loan(UUID.randomUUID().toString(), BOOK_ID, USER_ID, LoanStatus.ACTIVE),
+                loan(UUID.randomUUID().toString(), BOOK_ID, USER_ID, LoanStatus.ACTIVE)
         ));
         assertEquals(2, libraryService.getAllLoans().size());
     }
 
     @Test
     void getLoanById_shouldReturnLoan() {
-        LoanEntity entity = loanEntity(LOAN_ID, BOOK_ID, USER_ID, LoanStatus.ACTIVE);
-        when(loanRepository.findById(LOAN_ID)).thenReturn(Optional.of(entity));
-        Loan found = libraryService.getLoanById(LOAN_ID.toString());
-        assertEquals(LOAN_ID.toString(), found.getId());
+        when(loanRepository.findById(LOAN_ID)).thenReturn(Optional.of(loan(LOAN_ID, BOOK_ID, USER_ID, LoanStatus.ACTIVE)));
+        Loan found = libraryService.getLoanById(LOAN_ID);
+        assertEquals(LOAN_ID, found.getId());
     }
 
     @Test
@@ -201,8 +189,8 @@ class LibraryServiceTest {
     @Test
     void getAllUsers_shouldReturnAllRegisteredUsers() {
         when(userRepository.findAll()).thenReturn(List.of(
-                userEntity(UUID.randomUUID()),
-                userEntity(UUID.randomUUID())
+                user(UUID.randomUUID().toString()),
+                user(UUID.randomUUID().toString())
         ));
         assertEquals(2, libraryService.getAllUsers().size());
     }

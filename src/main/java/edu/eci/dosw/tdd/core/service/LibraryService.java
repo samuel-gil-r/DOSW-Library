@@ -125,4 +125,12 @@ public class LibraryService {
         return loanRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Loan not found: " + id));
     }
+
+    @Transactional
+    public void deleteLoan(String id) {
+        ValidationUtil.requireNonBlank(id, "id");
+        loanRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Loan not found: " + id));
+        loanRepository.delete(id);
+    }
 }

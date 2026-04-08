@@ -48,6 +48,14 @@ public class LoanController {
         return ResponseEntity.ok(libraryService.returnBook(id));
     }
 
+    @Operation(summary = "Delete a loan by ID")
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('LIBRARIAN')")
+    public ResponseEntity<Void> deleteLoan(@PathVariable String id) {
+        libraryService.deleteLoan(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @Operation(summary = "Get all loans for a specific user")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Loan>> getLoansByUser(@PathVariable String userId) {
